@@ -9,6 +9,12 @@ class CustomUser(AbstractUser):
     """
     Пользователь
     """
+    USERNAME_FIELD = "email"
+    REQUIRED_FIELDS = ("username", "last_name", "first_name")
+
+    first_name = models.CharField(max_length=150, blank=False)
+    last_name = models.CharField(max_length=150, blank=False)
+    email = models.EmailField(unique=True)
     avatar = models.ImageField(
         upload_to='avatars/',
         null=True,
