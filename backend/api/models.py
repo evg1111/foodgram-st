@@ -1,3 +1,6 @@
+"""
+Основные модели базы данных
+"""
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 
@@ -196,6 +199,10 @@ class ShortLink(models.Model):
     )
     code = models.SlugField(max_length=10, unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Короткая ссылка'
+        verbose_name_plural = 'Короткие ссылки'
 
     def __str__(self):
         return self.code
