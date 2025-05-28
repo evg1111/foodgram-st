@@ -3,6 +3,7 @@ from django.http import HttpResponse
 from django.db.models import Sum, F
 from rest_framework import viewsets, status, filters
 from rest_framework.decorators import action
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework.authentication import TokenAuthentication
@@ -23,14 +24,20 @@ from django.contrib.auth import authenticate
 User = get_user_model()
 
 
+class CustomPageNumberPagination(PageNumberPagination):
+    page_size = 10
+    page_size_query_param = 'limit'
+    max_page_size = 100
+
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     authentication_classes = (TokenAuthentication,)
     filter_backends = (filters.SearchFilter,)
     search_fields = ('username', 'email',)
+    pagination_class = CustomPageNumberPagination
 
     def get_permissions(self):
-        if self.action in ['create', 'login', 'logout']:
+        if self.action in ['create', 'login', 'logout', 'list', 'retrieve']:
             return [AllowAny()]
         return [IsAuthenticated()]
 
@@ -60,6 +67,9 @@ class UserViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['put', 'delete'], url_path='me/avatar', permission_classes=[IsAuthenticated])
     def avatar(self, request):
         if request.method == 'PUT':
+            avatar_data = request.data.get('avatar')
+            if avatar_data in [None, '']:
+                return Response({'avatar': ['Это поле обязательно.']}, status=status.HTTP_400_BAD_REQUEST)
             serializer = SetAvatarSerializer(request.user, data=request.data, partial=True)
             serializer.is_valid(raise_exception=True)
             serializer.save()
