@@ -54,26 +54,33 @@ class IngredientSerializer(serializers.ModelSerializer):
         fields = ('id', 'name', 'measurement_unit')
 
 
-class IngredientInRecipeSerializer(serializers.ModelSerializer):
-    id = serializers.PrimaryKeyRelatedField(queryset=Ingredient.objects.all())
-    name = serializers.ReadOnlyField(source='ingredient.name')
-    measurement_unit = serializers.ReadOnlyField(source='ingredient.measurement_unit')
-    amount = serializers.IntegerField()
-
-    class Meta:
-        model = RecipeIngredient
-        fields = ('id', 'name', 'measurement_unit', 'amount')
-
-
 class RecipeMinifiedSerializer(serializers.ModelSerializer):
     class Meta:
         model = Recipe
         fields = ('id', 'name', 'image', 'cooking_time')
 
 
+class IngredientWriteSerializer(serializers.ModelSerializer):
+    ingredient = serializers.PrimaryKeyRelatedField(queryset=Ingredient.objects.all())
+
+    class Meta:
+        model = RecipeIngredient
+        fields = ('ingredient', 'amount')
+
+
+class IngredientReadSerializer(serializers.ModelSerializer):
+    id = serializers.ReadOnlyField(source='ingredient.id')
+    name = serializers.ReadOnlyField(source='ingredient.name')
+    measurement_unit = serializers.ReadOnlyField(source='ingredient.measurement_unit')
+
+    class Meta:
+        model = RecipeIngredient
+        fields = ('id', 'name', 'measurement_unit', 'amount')
+
+
 class RecipeSerializer(serializers.ModelSerializer):
     author = UserSerializer(read_only=True)
-    ingredients = IngredientInRecipeSerializer(many=True, source='ingredient_links')
+    ingredients = IngredientReadSerializer(many=True, source='ingredient_links')
     is_favorited = serializers.SerializerMethodField()
     is_in_shopping_cart = serializers.SerializerMethodField()
 
@@ -98,17 +105,12 @@ class RecipeSerializer(serializers.ModelSerializer):
 
 
 class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
-    ingredients = IngredientInRecipeSerializer(many=True)
+    ingredients = IngredientWriteSerializer(many=True)
     image = Base64ImageField()
 
     class Meta:
         model = Recipe
         fields = ('ingredients', 'image', 'name', 'text', 'cooking_time')
-
-    def validate_ingredients(self, value):
-        if not value:
-            raise serializers.ValidationError('Добавьте хотя бы один ингредиент')
-        return value
 
     def create(self, validated_data):
         ingredients_data = validated_data.pop('ingredients')
@@ -117,12 +119,13 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
         return recipe
 
     def update(self, instance, validated_data):
-        ingredients_data = validated_data.pop('ingredients')
-        for attr, val in validated_data.items():
-            setattr(instance, attr, val)
+        ingredients_data = validated_data.pop('ingredients', None)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
         instance.save()
-        instance.ingredient_links.all().delete()
-        self._save_ingredients(instance, ingredients_data)
+        if ingredients_data is not None:
+            instance.ingredient_links.all().delete()
+            self._save_ingredients(instance, ingredients_data)
         return instance
 
     def _save_ingredients(self, recipe, ingredients_data):
@@ -130,7 +133,7 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
         for ing in ingredients_data:
             links.append(RecipeIngredient(
                 recipe=recipe,
-                ingredient=ing['id'],
+                ingredient=ing['ingredient'],
                 amount=ing['amount']
             ))
         RecipeIngredient.objects.bulk_create(links)
@@ -155,7 +158,7 @@ class SubscriptionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Subscription
         fields = (
-        'id', 'email', 'username', 'first_name', 'last_name', 'avatar', 'is_subscribed', 'recipes', 'recipes_count')
+            'id', 'email', 'username', 'first_name', 'last_name', 'avatar', 'is_subscribed', 'recipes', 'recipes_count')
 
     id = serializers.ReadOnlyField(source='author.id')
     email = serializers.ReadOnlyField(source='author.email')
