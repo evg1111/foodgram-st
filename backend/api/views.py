@@ -135,8 +135,8 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
 class RecipeViewSet(viewsets.ModelViewSet):
     queryset = Recipe.objects.all()
     authentication_classes = (TokenAuthentication,)
-    filter_backends = (filters.SearchFilter,)
-    search_fields = ('author__id',)
+    filter_backends = (DjangoFilterBackend, filters.SearchFilter)
+    filterset_fields = ('author',)
 
     def get_permissions(self):
         if self.action in ['list', 'retrieve', 'download_shopping_cart', 'get_link']:

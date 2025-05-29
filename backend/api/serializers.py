@@ -116,6 +116,43 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         return RecipeSerializer(instance, context=self.context).data
 
+    def validate_image(self, value):
+        if not value:
+            raise serializers.ValidationError('Нужно указать фото.')
+        return value
+
+    def validate_cooking_time(self, value):
+        if value < 1:
+            raise serializers.ValidationError(
+                f'Время приготовления должно быть не меньше 1.'
+            )
+        return value
+
+    def validate_ingredients(self, value):
+        if not value:
+            raise serializers.ValidationError('Нужно указать хотя бы один ингредиент.')
+        seen_ids = set()
+        for item in value:
+            ingredient_id = item.get('ingredient')
+            amount = item.get('amount')
+            # Проверяем наличие id и amount
+            if ingredient_id is None:
+                raise serializers.ValidationError('Каждый ингредиент должен содержать поле id.')
+            if amount is None:
+                raise serializers.ValidationError('Каждый ингредиент должен содержать поле amount.')
+            # Проверяем количество
+            if amount < 1:
+                raise serializers.ValidationError(
+                    f'Количество ингредиента (id={ingredient_id}) должно быть не меньше 1.'
+                )
+            # Проверяем дубликаты
+            if ingredient_id.name in seen_ids:
+                raise serializers.ValidationError(
+                    f'Ингредиенты не должны повторяться (повтор id={ingredient_id}).'
+                )
+            seen_ids.add(ingredient_id.name)
+        return value
+
     def create(self, validated_data):
         ingredients_data = validated_data.pop('ingredients')
         recipe = Recipe.objects.create(
