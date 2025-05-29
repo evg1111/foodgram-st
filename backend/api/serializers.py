@@ -60,12 +60,13 @@ class RecipeMinifiedSerializer(serializers.ModelSerializer):
         fields = ('id', 'name', 'image', 'cooking_time')
 
 
-class IngredientWriteSerializer(serializers.ModelSerializer):
-    ingredient = serializers.PrimaryKeyRelatedField(queryset=Ingredient.objects.all())
-
-    class Meta:
-        model = RecipeIngredient
-        fields = ('ingredient', 'amount')
+class IngredientWriteSerializer(serializers.Serializer):
+    id = serializers.PrimaryKeyRelatedField(
+        queryset=Ingredient.objects.all(),
+        source='ingredient',
+        write_only=True,
+    )
+    amount = serializers.IntegerField()
 
 
 class IngredientReadSerializer(serializers.ModelSerializer):
@@ -112,9 +113,15 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
         model = Recipe
         fields = ('ingredients', 'image', 'name', 'text', 'cooking_time')
 
+    def to_representation(self, instance):
+        return RecipeSerializer(instance, context=self.context).data
+
     def create(self, validated_data):
         ingredients_data = validated_data.pop('ingredients')
-        recipe = Recipe.objects.create(author=self.context['request'].user, **validated_data)
+        recipe = Recipe.objects.create(
+            author=self.context['request'].user,
+            **validated_data
+        )
         self._save_ingredients(recipe, ingredients_data)
         return recipe
 
@@ -124,6 +131,7 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
             setattr(instance, attr, value)
         instance.save()
         if ingredients_data is not None:
+            # очистим старые
             instance.ingredient_links.all().delete()
             self._save_ingredients(instance, ingredients_data)
         return instance
