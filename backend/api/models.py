@@ -1,8 +1,10 @@
 """
 Основные модели базы данных
 """
-from django.db import models
+from django.db import models, IntegrityError
 from django.contrib.auth.models import AbstractUser
+from django.urls import reverse
+from django.utils.crypto import get_random_string
 
 
 class CustomUser(AbstractUser):
@@ -194,6 +196,10 @@ class Subscription(models.Model):
         return f"{self.subscriber.username} -> {self.author.username}"
 
 
+def generate_short_code():
+    return get_random_string(8)
+
+
 class ShortLink(models.Model):
     """
     Короткая ссылка на рецепт
@@ -203,12 +209,31 @@ class ShortLink(models.Model):
         on_delete=models.CASCADE,
         related_name='short_link'
     )
-    code = models.SlugField(max_length=10, unique=True)
+    code = models.SlugField(
+        max_length=10,
+        unique=True,
+        default=generate_short_code,
+        editable=False
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         verbose_name = 'Короткая ссылка'
         verbose_name_plural = 'Короткие ссылки'
 
+    def save(self, *args, **kwargs):
+        if not self.code:
+            for _ in range(15):
+                code = get_random_string(8)
+                if not ShortLink.objects.filter(code=code).exists():
+                    self.code = code
+                    break
+            else:
+                raise IntegrityError("Не удалось сгенерировать уникальный код")
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return self.code
+
+    def get_short_url(self):
+        return reverse('shortlink-redirect', args=[self.code])

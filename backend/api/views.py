@@ -1,7 +1,7 @@
 from django.shortcuts import get_object_or_404
 from django.http import HttpResponse
 from django.db.models import Sum, F
-from django_filters.filters import CharFilter
+from django_filters.filters import CharFilter, NumberFilter
 from django_filters.rest_framework import FilterSet
 from django_filters.rest_framework.backends import DjangoFilterBackend
 from rest_framework import viewsets, status, filters
@@ -31,6 +31,7 @@ class CustomPageNumberPagination(PageNumberPagination):
     page_size = 10
     page_size_query_param = 'limit'
     max_page_size = 100
+
 
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
@@ -123,20 +124,30 @@ class IngredientFilter(FilterSet):
         fields = ['name']
 
 
+class RecipeFilter(FilterSet):
+    name = CharFilter(lookup_expr='istartswith')
+    author = NumberFilter(field_name='author__id')
+
+    class Meta:
+        model = Recipe
+        fields = ['name', 'author']
+
+
 class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
     filter_backends = (DjangoFilterBackend,)
     filterset_class = IngredientFilter
-
+    pagination_class = None
     permission_classes = (AllowAny,)
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
     queryset = Recipe.objects.all()
     authentication_classes = (TokenAuthentication,)
-    filter_backends = (DjangoFilterBackend, filters.SearchFilter)
-    filterset_fields = ('author',)
+    filter_backends = (DjangoFilterBackend,)
+    filterset_class = RecipeFilter
+    pagination_class = CustomPageNumberPagination
 
     def get_permissions(self):
         if self.action in ['list', 'retrieve', 'download_shopping_cart', 'get_link']:
@@ -203,3 +214,5 @@ class RecipeViewSet(viewsets.ModelViewSet):
             if deleted:
                 return Response(status=status.HTTP_204_NO_CONTENT)
             return Response({'errors': 'Не было в корзине'}, status=status.HTTP_400_BAD_REQUEST)
+
+

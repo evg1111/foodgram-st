@@ -17,5 +17,5 @@ urlpatterns = [
     path('api/auth/token/login/', CustomObtainAuthToken.as_view(), name='token-login'),
     path('api/auth/token/logout/', UserViewSet.as_view({'post': 'logout'}), name='token-logout'),
     path('api-auth/', include('rest_framework.urls')),
-    path('s/<slug:code>/', RedirectView.as_view(url='/', permanent=False), name='short-link-redirect'),
+    path('s/<slug:code>/', RedirectView.as_view(url='/', permanent=False), name='shortlink-redirect'),
 ]

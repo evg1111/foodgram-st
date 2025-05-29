@@ -228,16 +228,15 @@ class SubscriptionSerializer(serializers.ModelSerializer):
 
 
 class ShortLinkSerializer(serializers.ModelSerializer):
-    short_link = serializers.SerializerMethodField()
-
     class Meta:
         model = ShortLink
-        fields = ('short_link',)
+        fields = []
 
-    def get_short_link(self, obj):
+    def to_representation(self, instance):
         request = self.context.get('request')
-        url = obj.code
-        return request.build_absolute_uri(f'/s/{url}')
+        rel = instance.get_short_url()
+        full = request.build_absolute_uri(rel)
+        return {'short-link': full}
 
 
 class SetAvatarSerializer(serializers.ModelSerializer):
