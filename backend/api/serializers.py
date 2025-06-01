@@ -106,7 +106,11 @@ class RecipeSerializer(serializers.ModelSerializer):
 
 
 class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
-    ingredients = IngredientWriteSerializer(many=True)
+    ingredients = IngredientWriteSerializer(
+        many=True,
+        required=True,
+        allow_empty=False,
+    )
     image = Base64ImageField()
 
     class Meta:
@@ -129,7 +133,7 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
         return value
 
     def validate_ingredients(self, value):
-        if not value:
+        if not value or len(value) == 0:
             raise serializers.ValidationError('Нужно указать хотя бы один ингредиент.')
         seen_ids = set()
         for item in value:
@@ -163,6 +167,10 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
         return recipe
 
     def update(self, instance, validated_data):
+        if 'ingredients' not in self.initial_data:
+            raise serializers.ValidationError({
+                'ingredients': 'Поле ingredients обязательно для обновления.'
+            })
         ingredients_data = validated_data.pop('ingredients', None)
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
@@ -171,6 +179,7 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
             # очистим старые
             instance.ingredient_links.all().delete()
             self._save_ingredients(instance, ingredients_data)
+
         return instance
 
     def _save_ingredients(self, recipe, ingredients_data):

@@ -142,6 +142,15 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = (AllowAny,)
 
 
+from rest_framework import permissions
+
+class IsAuthor(permissions.BasePermission):
+    def has_object_permission(self, request, view, obj):
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        return obj.author == request.user
+
+
 class RecipeViewSet(viewsets.ModelViewSet):
     queryset = Recipe.objects.all()
     authentication_classes = (TokenAuthentication,)
@@ -154,7 +163,9 @@ class RecipeViewSet(viewsets.ModelViewSet):
             return [AllowAny()]
         if self.action in ['favorite', 'shopping_cart']:
             return [IsAuthenticated()]
-        return [IsAuthenticated()]
+        if self.action == 'create':
+            return [IsAuthenticated()]
+        return [IsAuthenticated(), IsAuthor()]
 
     def get_serializer_class(self):
         if self.action in ['create', 'update', 'partial_update']:
