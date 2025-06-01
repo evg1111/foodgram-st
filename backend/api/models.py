@@ -1,6 +1,7 @@
 """
 Основные модели базы данных
 """
+from django.conf import settings
 from django.db import models, IntegrityError
 from django.contrib.auth.models import AbstractUser
 from django.urls import reverse
@@ -21,6 +22,7 @@ class CustomUser(AbstractUser):
         upload_to='avatars/',
         null=True,
         blank=True,
+        default='default.jpg',
         verbose_name='Аватар пользователя'
     )
 
@@ -32,6 +34,12 @@ class CustomUser(AbstractUser):
         related_name='subscribers',
         verbose_name='Подписки'
     )
+
+    @property
+    def avatar_url(self):
+        if self.avatar and hasattr(self.avatar, 'url'):
+            return self.avatar.url
+        return getattr(settings, 'DEFAULT_AVATAR_URL', None)
 
     def __str__(self):
         return self.username

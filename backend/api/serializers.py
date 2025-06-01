@@ -219,7 +219,7 @@ class SubscriptionSerializer(serializers.ModelSerializer):
     username = serializers.ReadOnlyField(source='author.username')
     first_name = serializers.ReadOnlyField(source='author.first_name')
     last_name = serializers.ReadOnlyField(source='author.last_name')
-    avatar = serializers.ReadOnlyField(source='author.avatar')
+    avatar = serializers.ReadOnlyField(source='author.avatar_url')
     is_subscribed = serializers.SerializerMethodField()
 
     def get_is_subscribed(self, obj):
