@@ -2,3 +2,4 @@
 
 По адресу http://localhost изучите фронтенд веб-приложения, а по адресу http://localhost/api/docs/ — спецификацию API.
 
+Cсылка на github: https://github.com/evg1111/foodgram-st.git
