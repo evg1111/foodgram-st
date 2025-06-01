@@ -12,6 +12,7 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.authtoken.models import Token
+from rest_framework import permissions
 
 from .models import (
     Ingredient, Recipe, Favorite, ShoppingCart, Subscription, ShortLink, RecipeIngredient
@@ -19,8 +20,8 @@ from .models import (
 from .serializers import (
     UserSerializer, CustomUserCreateSerializer, CustomUserResponseSerializer,
     IngredientSerializer, RecipeSerializer, RecipeCreateUpdateSerializer, RecipeMinifiedSerializer,
-    FavoriteSerializer, ShoppingCartSerializer, SubscriptionSerializer, ShortLinkSerializer,
-    SetPasswordSerializer, SetAvatarSerializer, TokenCreateSerializer, TokenGetResponseSerializer
+    SubscriptionSerializer, ShortLinkSerializer,
+    SetPasswordSerializer, SetAvatarSerializer, TokenCreateSerializer
 )
 from django.contrib.auth import get_user_model
 from django.contrib.auth import authenticate
@@ -28,10 +29,54 @@ from django.contrib.auth import authenticate
 User = get_user_model()
 
 
+class IsAuthor(permissions.BasePermission):
+    def has_object_permission(self, request, view, obj):
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        return obj.author == request.user
+
+
 class CustomPageNumberPagination(PageNumberPagination):
     page_size = 10
     page_size_query_param = 'limit'
     max_page_size = 100
+
+
+class IngredientFilter(FilterSet):
+    name = CharFilter(lookup_expr='istartswith')
+
+    class Meta:
+        model = Ingredient
+        fields = ['name']
+
+
+class RecipeFilter(FilterSet):
+    name = CharFilter(lookup_expr='istartswith')
+    author = NumberFilter(field_name='author__id')
+    is_favorited = NumberFilter(method='filter_is_favorited')
+    is_in_shopping_cart = NumberFilter(method='filter_is_in_shopping_cart')
+
+    class Meta:
+        model = Recipe
+        fields = ['name', 'author', 'is_favorited', 'is_in_shopping_cart']
+
+    def filter_is_favorited(self, queryset, name, value):
+        user = self.request.user
+        if not user.is_authenticated:
+            return queryset.none() if value else queryset
+
+        if value:
+            return queryset.filter(favorite__user=user)
+        return queryset.exclude(favorite__user=user)
+
+    def filter_is_in_shopping_cart(self, queryset, name, value):
+        user = self.request.user
+        if not user.is_authenticated:
+            return queryset.none() if value else queryset
+
+        if value:
+            return queryset.filter(shoppingcart__user=user)
+        return queryset.exclude(shoppingcart__user=user)
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -94,6 +139,7 @@ class UserViewSet(viewsets.ModelViewSet):
                 return Response({'errors': 'Уже подписаны'}, status=status.HTTP_400_BAD_REQUEST)
             serializer = SubscriptionSerializer(sub, context={'request': request})
             return Response(serializer.data, status=status.HTTP_201_CREATED)
+
         deleted, _ = Subscription.objects.filter(subscriber=request.user, author=author).delete()
         if deleted:
             return Response(status=status.HTTP_204_NO_CONTENT)
@@ -117,22 +163,31 @@ class UserViewSet(viewsets.ModelViewSet):
         Token.objects.filter(user=request.user).delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
+    @action(
+        detail=False,
+        methods=['get'],
+        url_path='subscriptions',
+        permission_classes=[IsAuthenticated]
+    )
+    def subscriptions(self, request):
+        subscriber = request.user
+        qs = Subscription.objects.filter(subscriber=subscriber).order_by('pk')
 
-class IngredientFilter(FilterSet):
-    name = CharFilter(lookup_expr='istartswith')
+        page = self.paginate_queryset(qs)
+        if page is not None:
+            serializer = SubscriptionSerializer(
+                page,
+                many=True,
+                context={'request': request}
+            )
+            return self.get_paginated_response(serializer.data)
 
-    class Meta:
-        model = Ingredient
-        fields = ['name']
-
-
-class RecipeFilter(FilterSet):
-    name = CharFilter(lookup_expr='istartswith')
-    author = NumberFilter(field_name='author__id')
-
-    class Meta:
-        model = Recipe
-        fields = ['name', 'author']
+        serializer = SubscriptionSerializer(
+            qs,
+            many=True,
+            context={'request': request}
+        )
+        return Response(serializer.data)
 
 
 class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
@@ -142,15 +197,6 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     filterset_class = IngredientFilter
     pagination_class = None
     permission_classes = (AllowAny,)
-
-
-from rest_framework import permissions
-
-class IsAuthor(permissions.BasePermission):
-    def has_object_permission(self, request, view, obj):
-        if request.method in permissions.SAFE_METHODS:
-            return True
-        return obj.author == request.user
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
@@ -227,5 +273,3 @@ class RecipeViewSet(viewsets.ModelViewSet):
             if deleted:
                 return Response(status=status.HTTP_204_NO_CONTENT)
             return Response({'errors': 'Не было в корзине'}, status=status.HTTP_400_BAD_REQUEST)
-
-

@@ -136,12 +136,12 @@ class Favorite(models.Model):
     user = models.ForeignKey(
         CustomUser,
         on_delete=models.CASCADE,
-        related_name='favorites'
+        related_name='favorite'
     )
     recipe = models.ForeignKey(
         Recipe,
         on_delete=models.CASCADE,
-        related_name='favorites'
+        related_name='favorite'
     )
     added_at = models.DateTimeField(auto_now_add=True)
 
@@ -166,7 +166,7 @@ class ShoppingCart(models.Model):
     recipe = models.ForeignKey(
         Recipe,
         on_delete=models.CASCADE,
-        related_name='in_carts'
+        related_name='shoppingcart'
     )
     added_at = models.DateTimeField(auto_now_add=True)
 
