@@ -226,7 +226,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         if not user.is_authenticated:
             return Response(status=status.HTTP_401_UNAUTHORIZED)
         ingredients = RecipeIngredient.objects.filter(
-            recipe__in_shopping_cart__user=user
+            recipe__shoppingcart__user=user
         ).values(
             name=F('ingredient__name'),
             unit=F('ingredient__measurement_unit')
