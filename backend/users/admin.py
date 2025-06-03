@@ -1,10 +1,10 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 
-from users.models import CustomUser
+from users.models import FoodgramUser
 
 
-@admin.register(CustomUser)
+@admin.register(FoodgramUser)
 class CustomUserAdmin(UserAdmin):
     """Админка для кастомного пользователя"""
     fieldsets = UserAdmin.fieldsets + (
