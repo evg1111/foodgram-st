@@ -15,7 +15,7 @@ from rest_framework.authentication import TokenAuthentication
 from rest_framework.authtoken.models import Token
 from rest_framework import permissions
 
-from .models import (
+from recipes.models import (
     Ingredient, Recipe, Favorite, ShoppingCart, Subscription, ShortLink, RecipeIngredient
 )
 from .serializers import (

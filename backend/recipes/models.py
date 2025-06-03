@@ -2,47 +2,13 @@
 Основные модели базы данных
 """
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.db import models, IntegrityError
 from django.contrib.auth.models import AbstractUser
 from django.urls import reverse
 from django.utils.crypto import get_random_string
 
-
-class CustomUser(AbstractUser):
-    """
-    Пользователь
-    """
-    USERNAME_FIELD = "email"
-    REQUIRED_FIELDS = ("username", "last_name", "first_name")
-
-    first_name = models.CharField(max_length=150, blank=False)
-    last_name = models.CharField(max_length=150, blank=False)
-    email = models.EmailField(unique=True)
-    avatar = models.ImageField(
-        upload_to='avatars/',
-        null=True,
-        blank=True,
-        default='default.jpg',
-        verbose_name='Аватар пользователя'
-    )
-
-    # Подписки: кто на кого подписан
-    subscriptions = models.ManyToManyField(
-        'self',
-        through='Subscription',
-        symmetrical=False,
-        related_name='subscribers',
-        verbose_name='Подписки'
-    )
-
-    @property
-    def avatar_url(self):
-        if self.avatar and hasattr(self.avatar, 'url'):
-            return self.avatar.url
-        return getattr(settings, 'DEFAULT_AVATAR_URL', None)
-
-    def __str__(self):
-        return self.username
+User = get_user_model()
 
 
 class Ingredient(models.Model):
@@ -67,7 +33,7 @@ class Recipe(models.Model):
     Рецепт
     """
     author = models.ForeignKey(
-        CustomUser,
+        User,
         on_delete=models.CASCADE,
         related_name='recipes',
         verbose_name='Автор'
@@ -83,13 +49,13 @@ class Recipe(models.Model):
         verbose_name='Ингредиенты'
     )
     favorited_by = models.ManyToManyField(
-        CustomUser,
+        User,
         through='Favorite',
         related_name='favorite_recipes',
         verbose_name='Добавили в избранное'
     )
     in_shopping_cart = models.ManyToManyField(
-        CustomUser,
+        User,
         through='ShoppingCart',
         related_name='cart_recipes',
         verbose_name='В корзине'
@@ -134,7 +100,7 @@ class Favorite(models.Model):
     Избранное: связь пользователь–рецепт
     """
     user = models.ForeignKey(
-        CustomUser,
+        User,
         on_delete=models.CASCADE,
         related_name='favorite'
     )
@@ -159,7 +125,7 @@ class ShoppingCart(models.Model):
     Список покупок: связь пользователь–рецепт
     """
     user = models.ForeignKey(
-        CustomUser,
+        User,
         on_delete=models.CASCADE,
         related_name='shopping_carts'
     )
@@ -184,12 +150,12 @@ class Subscription(models.Model):
     Подписка пользователя на автора
     """
     subscriber = models.ForeignKey(
-        CustomUser,
+        User,
         on_delete=models.CASCADE,
         related_name='subscription_links'
     )
     author = models.ForeignKey(
-        CustomUser,
+        User,
         on_delete=models.CASCADE,
         related_name='follower_links'
     )

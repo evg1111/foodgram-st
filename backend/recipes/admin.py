@@ -15,14 +15,6 @@ class RecipeIngredientInline(admin.TabularInline):
     extra = 1
 
 
-@admin.register(CustomUser)
-class CustomUserAdmin(UserAdmin):
-    """Админка для кастомного пользователя"""
-    fieldsets = UserAdmin.fieldsets + (
-        ('Дополнительно', {'fields': ('avatar', )}),
-    )
-    list_display = ('username', 'email', 'first_name', 'last_name', 'is_staff')
-    search_fields = ('username', 'email', 'first_name', 'last_name')
 
 
 @admin.register(Ingredient)
