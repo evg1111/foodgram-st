@@ -1,6 +1,7 @@
-from django.contrib.auth import get_user_model
 from rest_framework import serializers
+from django.contrib.auth import get_user_model
 from drf_extra_fields.fields import Base64ImageField
+
 from .models import (
     Ingredient, Recipe, RecipeIngredient,
     Favorite, ShoppingCart, Subscription, ShortLink

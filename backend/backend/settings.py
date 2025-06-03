@@ -3,11 +3,11 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = "django-insecure-#=rgykck%qd=&&6o$ks3h&p-^jsafz6&q-fhtd!ifif@$q+m)q"
+SECRET_KEY = os.getenv("SECRET_KEY", "django-insecure-#=rgykck%qd=&&6o$ks3h&p-^jsafz6&q-fhtd!ifif@$q+m)q")
 
-DEBUG = True
+DEBUG = os.getenv("DEBUG", "True") == "True"
 
-ALLOWED_HOSTS = ["*"]
+ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", default="*").split(",")
 
 
 INSTALLED_APPS = [

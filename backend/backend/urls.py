@@ -3,10 +3,10 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
+from django.views.generic.base import RedirectView
 
 from api.auth import CustomObtainAuthToken
 from api.views import UserViewSet, IngredientViewSet, RecipeViewSet
-from django.views.generic.base import RedirectView
 
 router = DefaultRouter()
 router.register(r'users', UserViewSet, basename='user')
