@@ -2,6 +2,8 @@ from django.db import models
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 
+from users.constants import NAME_LENGTH
+
 
 class FoodgramUser(AbstractUser):
     """
@@ -10,8 +12,8 @@ class FoodgramUser(AbstractUser):
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ("username", "last_name", "first_name")
 
-    first_name = models.CharField(max_length=150, blank=False)
-    last_name = models.CharField(max_length=150, blank=False)
+    first_name = models.CharField(max_length=NAME_LENGTH, blank=False)
+    last_name = models.CharField(max_length=NAME_LENGTH, blank=False)
     email = models.EmailField(unique=True)
     avatar = models.ImageField(
         upload_to='avatars/',
@@ -24,7 +26,7 @@ class FoodgramUser(AbstractUser):
     # Подписки: кто на кого подписан
     subscriptions = models.ManyToManyField(
         'self',
-        through='Subscription',
+        through='recipes.Subscription',
         symmetrical=False,
         related_name='subscribers',
         verbose_name='Подписки'

@@ -11,6 +11,8 @@ ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", default="*").split(",")
 
 INSTALLED_APPS = [
     "api",
+    "recipes",
+    "users",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -87,7 +89,7 @@ STATIC_URL = "static/"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-AUTH_USER_MODEL = 'api.FoodgramUser'
+AUTH_USER_MODEL = 'users.FoodgramUser'
 DEFAULT_AVATAR_URL = '/static/avatar.jpg'
 
 REST_FRAMEWORK = {

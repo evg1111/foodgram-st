@@ -1,0 +1,1 @@
+NAME_LENGTH = 150

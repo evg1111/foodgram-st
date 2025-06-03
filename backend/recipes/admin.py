@@ -2,10 +2,9 @@
 Настройки админ-панели для моделей
 """
 from django.contrib import admin
-from django.contrib.auth.admin import UserAdmin
 
 from .models import (
-    CustomUser, Ingredient, Recipe, RecipeIngredient,
+    Ingredient, Recipe, RecipeIngredient,
     Favorite, ShoppingCart, Subscription, ShortLink
 )
 
