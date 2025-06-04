@@ -23,15 +23,6 @@ class FoodgramUser(AbstractUser):
         verbose_name='Аватар пользователя'
     )
 
-    # Подписки: кто на кого подписан
-    subscriptions = models.ManyToManyField(
-        'self',
-        through='recipes.Subscription',
-        symmetrical=False,
-        related_name='subscribers',
-        verbose_name='Подписки'
-    )
-
     @property
     def avatar_url(self):
         if self.avatar and hasattr(self.avatar, 'url'):

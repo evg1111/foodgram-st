@@ -47,18 +47,6 @@ class Recipe(models.Model):
     text = models.TextField(verbose_name='Описание')
     image = models.ImageField(upload_to='recipes/images/', verbose_name='Картинка')
     cooking_time = models.PositiveIntegerField(verbose_name='Время приготовления (мин)')
-    ingredients = models.ManyToManyField(
-        Ingredient,
-        through='RecipeIngredient',
-        related_name='recipes',
-        verbose_name='Ингредиенты'
-    )
-    in_shopping_cart = models.ManyToManyField(
-        User,
-        through='ShoppingCart',
-        related_name='cart_recipes',
-        verbose_name='В корзине'
-    )
 
     class Meta:
         verbose_name = 'Рецепт'

@@ -1,25 +1,22 @@
-from django.shortcuts import get_object_or_404
-from django.http import HttpResponse
 from django.contrib.auth import get_user_model, authenticate
 from django.db.models import Sum, F
-
-
+from django.http import HttpResponse
+from django.shortcuts import get_object_or_404
 from django_filters.rest_framework.backends import DjangoFilterBackend
 from rest_framework import viewsets, status, filters
+from rest_framework.authentication import TokenAuthentication
+from rest_framework.authtoken.models import Token
 from rest_framework.decorators import action
-
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
-from rest_framework.authentication import TokenAuthentication
-from rest_framework.authtoken.models import Token
-from rest_framework import permissions
 
 from recipes.models import (
     Ingredient, Recipe, Favorite, ShoppingCart, Subscription, ShortLink, RecipeIngredient
 )
 from .filters import RecipeFilter, IngredientFilter
 from .paginators import PageNumberPagination
+from .permissions import IsAuthor
 from .serializers import (
     UserSerializer, CustomUserCreateSerializer, CustomUserResponseSerializer,
     IngredientSerializer, RecipeSerializer, RecipeCreateUpdateSerializer, RecipeMinifiedSerializer,
@@ -28,16 +25,6 @@ from .serializers import (
 )
 
 User = get_user_model()
-
-
-class IsAuthor(permissions.BasePermission):
-    def has_object_permission(self, request, view, obj):
-        if request.method in permissions.SAFE_METHODS:
-            return True
-        return obj.author == request.user
-
-
-
 
 
 

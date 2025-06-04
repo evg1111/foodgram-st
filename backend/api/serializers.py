@@ -2,7 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from drf_extra_fields.fields import Base64ImageField
 
-from api.constants import MIN_COOKING_TIME
+from api.constants import MIN_COOKING_TIME, MIN_ING_AMOUNT
 from recipes.models import (
     Ingredient, Recipe, RecipeIngredient,
     Favorite, ShoppingCart, Subscription, ShortLink
@@ -22,7 +22,7 @@ class UserSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         if not request or request.user.is_anonymous:
             return False
-        return Subscription.objects.filter(subscriber=request.user, author=obj).exists()
+        return request.user.subscription_links.filter(author=obj).exists()
 
 
 class CustomUserCreateSerializer(serializers.ModelSerializer):
@@ -98,13 +98,13 @@ class RecipeSerializer(serializers.ModelSerializer):
         user = self.context['request'].user
         if user.is_anonymous:
             return False
-        return Favorite.objects.filter(user=user, recipe=obj).exists()
+        return user.favorite.filter(recipe=obj).exists()
 
     def get_is_in_shopping_cart(self, obj):
         user = self.context['request'].user
         if user.is_anonymous:
             return False
-        return ShoppingCart.objects.filter(user=user, recipe=obj).exists()
+        return user.shopping_carts.filter(recipe=obj).exists()
 
 
 class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
@@ -147,9 +147,9 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
             if amount is None:
                 raise serializers.ValidationError('Каждый ингредиент должен содержать поле amount.')
             # Проверяем количество
-            if amount < 1:
+            if amount < MIN_ING_AMOUNT:
                 raise serializers.ValidationError(
-                    f'Количество ингредиента (id={ingredient_id}) должно быть не меньше 1.'
+                    f'Количество ингредиента (id={ingredient_id}) должно быть не меньше {MIN_ING_AMOUNT}.'
                 )
             # Проверяем дубликаты
             if ingredient_id.name in seen_ids:
@@ -177,10 +177,9 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
-        if ingredients_data is not None:
-            # очистим старые
-            instance.ingredient_links.all().delete()
-            self._save_ingredients(instance, ingredients_data)
+        # очистим старые
+        instance.ingredient_links.all().delete()
+        self._save_ingredients(instance, ingredients_data)
 
         return instance
 
@@ -229,13 +228,13 @@ class SubscriptionSerializer(serializers.ModelSerializer):
 
     def get_recipes(self, obj):
         limit = self.context['request'].query_params.get('recipes_limit')
-        qs = Recipe.objects.filter(author=obj.author)
+        qs = obj.author.recipes.all()
         if limit and limit.isdigit():
             qs = qs[:int(limit)]
         return RecipeMinifiedSerializer(qs, many=True).data
 
     def get_recipes_count(self, obj):
-        return Recipe.objects.filter(author=obj.author).count()
+        return obj.author.recipes.count()
 
 
 class ShortLinkSerializer(serializers.ModelSerializer):

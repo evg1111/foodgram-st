@@ -13,8 +13,6 @@ class IngredientFilter(FilterSet):
 
 
 class RecipeFilter(FilterSet):
-    name = CharFilter(lookup_expr='istartswith')
-    author = NumberFilter(field_name='author__id')
     is_favorited = NumberFilter(method='filter_is_favorited')
     is_in_shopping_cart = NumberFilter(method='filter_is_in_shopping_cart')
 
