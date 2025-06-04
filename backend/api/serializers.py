@@ -157,9 +157,11 @@ def validate_non_empty_image(value):
 
 
 class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
+    author = serializers.HiddenField(default=serializers.CurrentUserDefault())
     ingredients = IngredientWriteSerializer(
         many=True,
         required=True,
+        allow_null=False,
         error_messages={
             'required': 'Поле ingredients обязательно.',
             'blank': 'Список ингредиентов не может быть пустым.',
@@ -202,30 +204,30 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Recipe
-        fields = ('ingredients', 'image', 'name', 'text', 'cooking_time')
+        fields = ('author', 'ingredients', 'image', 'name', 'text', 'cooking_time')
+        read_only_fields = ('author',)
 
-    def validate_ingredients(self, ingredients):
+    def validate(self, data):
+        ingredients = data.get("ingredients")
         if not ingredients:
             raise serializers.ValidationError("Нужен хотя бы один ингредиент.")
+        return data
 
     def to_representation(self, recipe_instance):
         return RecipeSerializer(recipe_instance, context=self.context).data
 
     def create(self, validated_data):
-        ingredients_data = validated_data.pop('ingredients', None)
-        author_user = self.context['request'].user
-        created_recipe = Recipe.objects.create(author=author_user, **validated_data)
+        ingredients_data = validated_data.pop('ingredients')
+        created_recipe = Recipe.objects.create(**validated_data)
         self._save_ingredients(created_recipe, ingredients_data)
         return created_recipe
 
-    def update(self, existing_recipe, validated_data):
-        ingredients_data = validated_data.pop('ingredients', None)
-        for field_name, field_value in validated_data.items():
-            setattr(existing_recipe, field_name, field_value)
-        existing_recipe.save()
-        existing_recipe.ingredient_links.all().delete()
-        self._save_ingredients(existing_recipe, ingredients_data)
-        return existing_recipe
+    def update(self, instance, validated_data):
+        ingredients_data = validated_data.pop('ingredients')
+        instance = super().update(instance, validated_data)
+        instance.ingredient_links.all().delete()
+        self._save_ingredients(instance, ingredients_data)
+        return instance
 
     def _save_ingredients(self, recipe_obj, ingredients_data):
         link_objects = []
