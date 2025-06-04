@@ -3,6 +3,7 @@ from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from drf_extra_fields.fields import Base64ImageField
 from rest_framework.exceptions import ValidationError
+from rest_framework.validators import UniqueTogetherValidator
 
 from api.constants import MIN_COOKING_TIME, MIN_ING_AMOUNT
 from recipes.models import (
@@ -26,31 +27,6 @@ class UserSerializer(serializers.ModelSerializer):
             return False
         current_user = request.user
         return current_user.subscription_links.filter(author=author_user).exists()
-
-
-class CustomUserCreateSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True)
-
-    class Meta:
-        model = User
-        fields = ('id', 'email', 'username', 'first_name', 'last_name', 'password')
-
-    def create(self, validated_data):
-        new_user = User(
-            email=validated_data['email'],
-            username=validated_data['username'],
-            first_name=validated_data['first_name'],
-            last_name=validated_data['last_name'],
-        )
-        new_user.set_password(validated_data['password'])
-        new_user.save()
-        return new_user
-
-
-class CustomUserResponseSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = User
-        fields = ('id', 'email', 'username', 'first_name', 'last_name')
 
 
 class IngredientSerializer(serializers.ModelSerializer):
@@ -251,6 +227,29 @@ class ShoppingCartSerializer(serializers.ModelSerializer):
         model = ShoppingCart
         fields = ('user', 'recipe')
 
+class SubscribeSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Subscription
+        fields = ("user", "author")
+        validators = [
+            UniqueTogetherValidator(
+                queryset=Subscription.objects.all(),
+                fields=("user", "author"),
+                message="Вы уже подписаны на этого автора.",
+            )
+        ]
+
+    def validate(self, data) -> dict:
+        if data["user"] == data["author"]:
+            raise serializers.ValidationError(
+                "Вы не можете подписаться на самого себя."
+            )
+        return data
+
+    def to_representation(self, instance):
+        return SubscriptionSerializer(instance.author, context=self.context).data
+
 
 class SubscriptionSerializer(serializers.ModelSerializer):
     recipes = serializers.SerializerMethodField()
@@ -303,15 +302,3 @@ class SetAvatarSerializer(serializers.ModelSerializer):
         fields = ('avatar',)
 
 
-class SetPasswordSerializer(serializers.Serializer):
-    current_password = serializers.CharField(write_only=True)
-    new_password = serializers.CharField(write_only=True)
-
-
-class TokenCreateSerializer(serializers.Serializer):
-    email = serializers.EmailField()
-    password = serializers.CharField(write_only=True)
-
-
-class TokenGetResponseSerializer(serializers.Serializer):
-    auth_token = serializers.CharField()

@@ -5,11 +5,11 @@ from django.shortcuts import get_object_or_404
 from django_filters.rest_framework.backends import DjangoFilterBackend
 from rest_framework import viewsets, status, filters
 from rest_framework.authentication import TokenAuthentication
-from rest_framework.authtoken.models import Token
 from rest_framework.decorators import action
-from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
+from djoser.views import UserViewSet as DjoserSet
+
 
 from recipes.models import (
     Ingredient, Recipe, Favorite, ShoppingCart, Subscription, ShortLink, RecipeIngredient
@@ -18,10 +18,10 @@ from .filters import RecipeFilter, IngredientFilter
 from .paginators import PageNumberPagination
 from .permissions import IsAuthor
 from .serializers import (
-    UserSerializer, CustomUserCreateSerializer, CustomUserResponseSerializer,
+    UserSerializer,
     IngredientSerializer, RecipeSerializer, RecipeCreateUpdateSerializer, RecipeMinifiedSerializer,
     SubscriptionSerializer, ShortLinkSerializer,
-    SetPasswordSerializer, SetAvatarSerializer, TokenCreateSerializer
+    SetAvatarSerializer, SubscribeSerializer,
 )
 
 User = get_user_model()
@@ -30,41 +30,18 @@ User = get_user_model()
 
 
 
-class UserViewSet(viewsets.ModelViewSet):
-    queryset = User.objects.all()
-    authentication_classes = (TokenAuthentication,)
-    filter_backends = (filters.SearchFilter,)
-    search_fields = ('username', 'email',)
+class UserViewSet(DjoserSet):
+    serializer_class = UserSerializer
     pagination_class = PageNumberPagination
-    parser_classes = (MultiPartParser, FormParser, JSONParser)
 
-    def get_permissions(self):
-        if self.action in ['create', 'login', 'logout', 'list', 'retrieve']:
-            return [AllowAny()]
-        return [IsAuthenticated()]
-
-    def get_serializer_class(self):
-        if self.action == 'create':
-            return CustomUserCreateSerializer
-        if self.action in ['retrieve', 'list', 'me']:
-            return UserSerializer
-        return CustomUserResponseSerializer
+    def get_permissions(self) -> list:
+        if self.action == "me":
+            return [IsAuthenticated()]
+        return super().get_permissions()
 
     @action(detail=False, methods=['get'], url_path='me', permission_classes=[IsAuthenticated])
-    def me(self, request):
-        serializer = UserSerializer(request.user, context={'request': request})
-        return Response(serializer.data)
-
-    @action(detail=False, methods=['post'], url_path='set_password', permission_classes=[IsAuthenticated])
-    def set_password(self, request):
-        serializer = SetPasswordSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        user = request.user
-        if not user.check_password(serializer.validated_data['current_password']):
-            return Response({'current_password': ['Неверный пароль']}, status=status.HTTP_400_BAD_REQUEST)
-        user.set_password(serializer.validated_data['new_password'])
-        user.save()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+    def me(self, request, *args, **kwargs):
+        return super().me(request, *args, **kwargs)
 
     @action(detail=False, methods=['put', 'delete'], url_path='me/avatar', permission_classes=[IsAuthenticated])
     def avatar(self, request):
@@ -79,7 +56,13 @@ class UserViewSet(viewsets.ModelViewSet):
         request.user.avatar.delete(save=True)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    @action(detail=True, methods=['post', 'delete'], url_path='subscribe', permission_classes=[IsAuthenticated])
+    @action(
+        methods=["post", "delete"],
+        url_path=r"(?P<pk>\d+)/subscribe",
+        serializer_class=SubscribeSerializer,
+        permission_classes=[IsAuthenticated],
+        detail=False,
+    )
     def subscribe(self, request, pk=None):
         author = get_object_or_404(User, pk=pk)
         if request.user == author:
@@ -95,24 +78,6 @@ class UserViewSet(viewsets.ModelViewSet):
         if deleted:
             return Response(status=status.HTTP_204_NO_CONTENT)
         return Response({'errors': 'Не были подписаны'}, status=status.HTTP_400_BAD_REQUEST)
-
-    @action(detail=False, methods=['post'], url_path='token/login', permission_classes=[AllowAny])
-    def login(self, request):
-        serializer = TokenCreateSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        user = authenticate(
-            username=serializer.validated_data['email'],
-            password=serializer.validated_data['password']
-        )
-        if not user:
-            return Response({'errors': 'Неверные данные для входа'}, status=status.HTTP_400_BAD_REQUEST)
-        token, _ = Token.objects.get_or_create(user=user)
-        return Response({'auth_token': token.key})
-
-    @action(detail=False, methods=['post'], url_path='token/logout', permission_classes=[IsAuthenticated])
-    def logout(self, request):
-        Token.objects.filter(user=request.user).delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(
         detail=False,
