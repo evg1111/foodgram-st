@@ -103,3 +103,4 @@ Foodgram предоставляет следующие возможности:
 
 ---
 
+Cсылка на github: https://github.com/evg1111/foodgram-st.git
