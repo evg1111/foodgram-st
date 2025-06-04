@@ -2,6 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from drf_extra_fields.fields import Base64ImageField
 
+from api.constants import MIN_COOKING_TIME
 from recipes.models import (
     Ingredient, Recipe, RecipeIngredient,
     Favorite, ShoppingCart, Subscription, ShortLink
@@ -127,14 +128,14 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
         return value
 
     def validate_cooking_time(self, value):
-        if value < 1:
+        if value < MIN_COOKING_TIME:
             raise serializers.ValidationError(
-                f'Время приготовления должно быть не меньше 1.'
+                f'Время приготовления должно быть не меньше {MIN_COOKING_TIME}.'
             )
         return value
 
     def validate_ingredients(self, value):
-        if not value or len(value) == 0:
+        if not value:
             raise serializers.ValidationError('Нужно указать хотя бы один ингредиент.')
         seen_ids = set()
         for item in value:

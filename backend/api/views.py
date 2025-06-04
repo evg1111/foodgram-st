@@ -2,12 +2,12 @@ from django.shortcuts import get_object_or_404
 from django.http import HttpResponse
 from django.contrib.auth import get_user_model, authenticate
 from django.db.models import Sum, F
-from django_filters.filters import CharFilter, NumberFilter
-from django_filters.rest_framework import FilterSet
+
+
 from django_filters.rest_framework.backends import DjangoFilterBackend
 from rest_framework import viewsets, status, filters
 from rest_framework.decorators import action
-from rest_framework.pagination import PageNumberPagination
+
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
@@ -18,6 +18,8 @@ from rest_framework import permissions
 from recipes.models import (
     Ingredient, Recipe, Favorite, ShoppingCart, Subscription, ShortLink, RecipeIngredient
 )
+from .filters import RecipeFilter, IngredientFilter
+from .paginators import PageNumberPagination
 from .serializers import (
     UserSerializer, CustomUserCreateSerializer, CustomUserResponseSerializer,
     IngredientSerializer, RecipeSerializer, RecipeCreateUpdateSerializer, RecipeMinifiedSerializer,
@@ -35,47 +37,10 @@ class IsAuthor(permissions.BasePermission):
         return obj.author == request.user
 
 
-class CustomPageNumberPagination(PageNumberPagination):
-    page_size = 10
-    page_size_query_param = 'limit'
-    max_page_size = 100
 
 
-class IngredientFilter(FilterSet):
-    name = CharFilter(lookup_expr='istartswith')
-
-    class Meta:
-        model = Ingredient
-        fields = ['name']
 
 
-class RecipeFilter(FilterSet):
-    name = CharFilter(lookup_expr='istartswith')
-    author = NumberFilter(field_name='author__id')
-    is_favorited = NumberFilter(method='filter_is_favorited')
-    is_in_shopping_cart = NumberFilter(method='filter_is_in_shopping_cart')
-
-    class Meta:
-        model = Recipe
-        fields = ['name', 'author', 'is_favorited', 'is_in_shopping_cart']
-
-    def filter_is_favorited(self, queryset, name, value):
-        user = self.request.user
-        if not user.is_authenticated:
-            return queryset.none() if value else queryset
-
-        if value:
-            return queryset.filter(favorite__user=user)
-        return queryset.exclude(favorite__user=user)
-
-    def filter_is_in_shopping_cart(self, queryset, name, value):
-        user = self.request.user
-        if not user.is_authenticated:
-            return queryset.none() if value else queryset
-
-        if value:
-            return queryset.filter(shoppingcart__user=user)
-        return queryset.exclude(shoppingcart__user=user)
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -83,7 +48,7 @@ class UserViewSet(viewsets.ModelViewSet):
     authentication_classes = (TokenAuthentication,)
     filter_backends = (filters.SearchFilter,)
     search_fields = ('username', 'email',)
-    pagination_class = CustomPageNumberPagination
+    pagination_class = PageNumberPagination
     parser_classes = (MultiPartParser, FormParser, JSONParser)
 
     def get_permissions(self):
@@ -203,7 +168,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     authentication_classes = (TokenAuthentication,)
     filter_backends = (DjangoFilterBackend,)
     filterset_class = RecipeFilter
-    pagination_class = CustomPageNumberPagination
+    pagination_class = PageNumberPagination
 
     def get_permissions(self):
         if self.action in ['list', 'retrieve', 'download_shopping_cart', 'get_link']:
