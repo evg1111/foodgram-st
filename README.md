@@ -93,6 +93,18 @@ Foodgram предоставляет следующие возможности:
 
    Здесь доступны все эндпоинты (регистрация, авторизация, рецепты, подписки, избранное и т.д.).
 
+### Запуск в Docker
+
+Необходимо зайти в папку ./infra, создать .env:
+
+```dotenv
+SECRET_KEY=your-secret-key-here
+DEBUG=False
+ALLOWED_HOSTS=localhost,127.0.0.1,backend
+```
+
+Далее прописать ```docker compose up --build```
+
 ---
 
 ## Автор

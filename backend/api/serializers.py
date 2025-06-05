@@ -113,21 +113,6 @@ class IngredientWriteSerializer(serializers.Serializer):
         }
     )
 
-    class Meta:
-        list_serializer_class = IngredientListSerializer
-
-
-def validate_non_empty_ingredients(value):
-    if value in (None, ''):
-        raise ValidationError('Поле ingredients не может быть пустым.')
-    return value
-
-
-def validate_non_empty_image(value):
-    if value in (None, ''):
-        raise ValidationError('Поле image не может быть пустым.')
-    return value
-
 
 class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
     author = serializers.HiddenField(default=serializers.CurrentUserDefault())
@@ -143,7 +128,6 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
     )
     image = Base64ImageField(
         required=True,
-        validators=[validate_non_empty_image],
         error_messages={
             'required': 'Нужно указать фото.',
             'invalid': 'Неверный формат изображения.'
@@ -185,6 +169,25 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
         if not ingredients:
             raise serializers.ValidationError("Нужен хотя бы один ингредиент.")
         return data
+
+    def validate_ingredients(self, ingredients_list):
+        if not ingredients_list:
+            raise serializers.ValidationError("Нужен хотя бы один ингредиент.")
+        seen_ids = set()
+        for entry in ingredients_list:
+            ingredient_obj = entry.get("ingredient")
+            if ingredient_obj is None:
+                raise serializers.ValidationError("Каждый ингредиент должен содержать поле id.")
+            pk = ingredient_obj.pk
+            if pk in seen_ids:
+                raise serializers.ValidationError(f"Ингредиенты не должны повторяться (повтор id={pk}).")
+            seen_ids.add(pk)
+        return ingredients_list
+
+    def validate_image(self, uploaded_image):
+        if uploaded_image in (None, ""):
+            raise serializers.ValidationError("Поле image не может быть пустым.")
+        return uploaded_image
 
     def to_representation(self, recipe_instance):
         return RecipeSerializer(recipe_instance, context=self.context).data
