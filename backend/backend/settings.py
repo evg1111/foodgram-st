@@ -3,7 +3,9 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = os.getenv("SECRET_KEY", "django-insecure-#=rgykck%qd=&&6o$ks3h&p-^jsafz6&q-fhtd!ifif@$q+m)q")
+SECRET_KEY = os.getenv(
+    "SECRET_KEY", "django-insecure-#=rgykck%qd=&&6o$ks3h&p-^jsafz6&q-fhtd!ifif@$q+m)q"
+)
 
 DEBUG = os.getenv("DEBUG", "True") == "True"
 
@@ -19,9 +21,9 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    'rest_framework',
-    'rest_framework.authtoken',
-    'django_filters',
+    "rest_framework",
+    "rest_framework.authtoken",
+    "django_filters",
     "djoser",
 ]
 
@@ -77,13 +79,13 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-LANGUAGE_CODE = 'ru'
-TIME_ZONE = 'Europe/Moscow'
+LANGUAGE_CODE = "ru"
+TIME_ZONE = "Europe/Moscow"
 USE_I18N = True
 USE_TZ = True
 
-MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+MEDIA_URL = "/media/"
+MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
 STATIC_URL = "static/"
 
@@ -102,15 +104,15 @@ DJOSER = {
     },
 }
 
-AUTH_USER_MODEL = 'users.FoodgramUser'
-DEFAULT_AVATAR_URL = '/static/avatar.jpg'
+AUTH_USER_MODEL = "users.FoodgramUser"
+DEFAULT_AVATAR_URL = "/static/avatar.jpg"
 
 REST_FRAMEWORK = {
-    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
-    'DEFAULT_PARSER_CLASSES': (
-        'rest_framework.parsers.JSONParser',
-        'rest_framework.parsers.FormParser',
-        'rest_framework.parsers.MultiPartParser',
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.LimitOffsetPagination",
+    "DEFAULT_PARSER_CLASSES": (
+        "rest_framework.parsers.JSONParser",
+        "rest_framework.parsers.FormParser",
+        "rest_framework.parsers.MultiPartParser",
     ),
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework.authentication.TokenAuthentication",
@@ -118,8 +120,8 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticatedOrReadOnly",
     ],
-    'DEFAULT_FILTER_BACKENDS': [
-        'django_filters.rest_framework.DjangoFilterBackend',
+    "DEFAULT_FILTER_BACKENDS": [
+        "django_filters.rest_framework.DjangoFilterBackend",
     ],
-    'PAGE_SIZE': 10,
+    "PAGE_SIZE": 10,
 }
