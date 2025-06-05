@@ -225,58 +225,45 @@ class ShoppingCartSerializer(serializers.ModelSerializer):
         fields = ('user', 'recipe')
 
 class SubscribeSerializer(serializers.ModelSerializer):
+    subscriber = serializers.HiddenField(default=serializers.CurrentUserDefault())
 
     class Meta:
         model = Subscription
-        fields = ("user", "author")
+        fields = ("subscriber", "author")
         validators = [
             UniqueTogetherValidator(
                 queryset=Subscription.objects.all(),
-                fields=("user", "author"),
+                fields=("subscriber", "author"),
                 message="Вы уже подписаны на этого автора.",
             )
         ]
 
-    def validate(self, data) -> dict:
-        if data["user"] == data["author"]:
-            raise serializers.ValidationError(
-                "Вы не можете подписаться на самого себя."
-            )
+    def validate(self, data):
+        if data["subscriber"] == data["author"]:
+            raise serializers.ValidationError("Вы не можете подписаться на самого себя.")
         return data
 
     def to_representation(self, instance):
         return SubscriptionSerializer(instance.author, context=self.context).data
 
 
-class SubscriptionSerializer(serializers.ModelSerializer):
+class SubscriptionSerializer(UserSerializer):
     recipes = serializers.SerializerMethodField()
-    recipes_count = serializers.IntegerField(source='author.recipes.count', read_only=True)
+    recipes_count = serializers.IntegerField(source='recipes.count', read_only=True)
 
-    class Meta:
-        model = Subscription
-        fields = (
-            'id', 'email', 'username', 'first_name', 'last_name', 'avatar',
-            'is_subscribed', 'recipes', 'recipes_count'
-        )
+    class Meta(UserSerializer.Meta):
+        fields = UserSerializer.Meta.fields + ('recipes', 'recipes_count')
 
-    id = serializers.ReadOnlyField(source='author.id')
-    email = serializers.ReadOnlyField(source='author.email')
-    username = serializers.ReadOnlyField(source='author.username')
-    first_name = serializers.ReadOnlyField(source='author.first_name')
-    last_name = serializers.ReadOnlyField(source='author.last_name')
-    avatar = serializers.ReadOnlyField(source='author.avatar_url')
-    is_subscribed = serializers.SerializerMethodField()
-
-    def get_is_subscribed(self, subscription_obj):
+    def get_is_subscribed(self, author_user):
         return True
 
-    def get_recipes(self, subscription_obj):
+    def get_recipes(self, author_user):
         request = self.context['request']
         limit_param = request.query_params.get('recipes_limit')
-        author_recipes_qs = subscription_obj.author.recipes.all()
+        qs = author_user.recipes.all()
         if limit_param and limit_param.isdigit():
-            author_recipes_qs = author_recipes_qs[:int(limit_param)]
-        return RecipeMinifiedSerializer(author_recipes_qs, many=True).data
+            qs = qs[:int(limit_param)]
+        return RecipeMinifiedSerializer(qs, many=True).data
 
 
 class ShortLinkSerializer(serializers.ModelSerializer):

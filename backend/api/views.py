@@ -87,27 +87,18 @@ class UserViewSet(DjoserSet):
     )
     def subscribe(self, request, pk=None):
         author = get_object_or_404(User, pk=pk)
-        if request.user == author:
-            return Response(
-                {"errors": "Нельзя подписаться на себя"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        if request.method == "POST":
-            sub, created = Subscription.objects.get_or_create(
-                subscriber=request.user, author=author
-            )
-            if not created:
-                return Response(
-                    {"errors": "Уже подписаны"}, status=status.HTTP_400_BAD_REQUEST
-                )
-            serializer = SubscriptionSerializer(sub, context={"request": request})
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-        deleted, _ = Subscription.objects.filter(
-            subscriber=request.user, author=author
-        ).delete()
+        if request.method == "POST":
+            serializer = self.get_serializer(data={"author": author.id}, context={"request": request})
+            serializer.is_valid(raise_exception=True)
+            subscription = serializer.save()
+            response_serializer = SubscriptionSerializer(subscription.author, context={"request": request})
+            return Response(response_serializer.data, status=status.HTTP_201_CREATED)
+
+        deleted, _ = Subscription.objects.filter(subscriber=request.user, author=author).delete()
         if deleted:
             return Response(status=status.HTTP_204_NO_CONTENT)
+
         return Response(
             {"errors": "Не были подписаны"}, status=status.HTTP_400_BAD_REQUEST
         )
@@ -119,17 +110,14 @@ class UserViewSet(DjoserSet):
         permission_classes=[IsAuthenticated],
     )
     def subscriptions(self, request):
-        subscriber = request.user
-        qs = Subscription.objects.filter(subscriber=subscriber).order_by("pk")
+        authors_qs = User.objects.filter(follower_links__subscriber=request.user).order_by("id")
 
-        page = self.paginate_queryset(qs)
+        page = self.paginate_queryset(authors_qs)
         if page is not None:
-            serializer = SubscriptionSerializer(
-                page, many=True, context={"request": request}
-            )
+            serializer = SubscriptionSerializer(page, many=True, context={"request": request})
             return self.get_paginated_response(serializer.data)
 
-        serializer = SubscriptionSerializer(qs, many=True, context={"request": request})
+        serializer = SubscriptionSerializer(authors_qs, many=True, context={"request": request})
         return Response(serializer.data)
 
 
