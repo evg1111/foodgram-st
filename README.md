@@ -95,15 +95,61 @@ Foodgram предоставляет следующие возможности:
 
 ### Запуск в Docker
 
-Необходимо зайти в папку ./infra, создать .env:
+1. **Перейти в папку `infra`:**
+   ```bash
+   cd infra
 
-```dotenv
-SECRET_KEY=your-secret-key-here
-DEBUG=False
-ALLOWED_HOSTS=localhost,127.0.0.1,backend
-```
 
-Далее прописать ```docker compose up --build```
+2. **Создать файл `.env`** (рядом с `docker-compose.yml`) и вставить:
+
+   ```dotenv
+   SECRET_KEY=your-secret-key-here
+   DEBUG=False
+   ALLOWED_HOSTS=localhost,127.0.0.1,backend
+   ```
+
+3. **Убедиться, что в `docker-compose.yml` прописаны сервисы `web` и `nginx`, а у `web` указан контекст с `Dockerfile` (обычно `context: ..`).**
+
+4. **Собрать образы и запустить контейнеры:**
+
+   ```bash
+   docker compose up --build
+   ```
+
+   * `--build` — пересобирает образ `web`, если что-то поменялось в коде или зависимостях.
+   * По умолчанию контейнеры стартуют в фоновом режиме.
+
+5. **Проверить, что все сервисы запустились:**
+
+   ```bash
+   docker compose ps
+   ```
+
+   Ожидается состояние `Up` для:
+
+   * `infra_web` (Django + Gunicorn)
+   * `infra_nginx` (Nginx)
+
+6. **(Опционально) Создать суперпользователя для Django:**
+
+   ```bash
+   docker compose exec web python manage.py createsuperuser
+   ```
+
+7. **Остановка контейнеров:**
+
+   ```bash
+   docker compose down
+   ```
+
+   Если нужно удалить тома (БД, статика, медиа):
+
+   ```bash
+   docker compose down -v
+   ```
+
+Теперь проект полностью развёрнут в Docker
+
 
 ---
 
