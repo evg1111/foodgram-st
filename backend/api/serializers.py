@@ -5,7 +5,7 @@ from drf_extra_fields.fields import Base64ImageField
 from rest_framework.exceptions import ValidationError
 from rest_framework.validators import UniqueTogetherValidator
 
-from api.constants import MIN_COOKING_TIME, MIN_ING_AMOUNT
+from recipes.contsants import MIN_ING_AMOUNT, MIN_COOKING_TIME
 from recipes.models import (
     Ingredient, Recipe, RecipeIngredient,
     Favorite, ShoppingCart, Subscription, ShortLink
