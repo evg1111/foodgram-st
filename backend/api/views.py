@@ -89,13 +89,19 @@ class UserViewSet(DjoserSet):
         author = get_object_or_404(User, pk=pk)
 
         if request.method == "POST":
-            serializer = self.get_serializer(data={"author": author.id}, context={"request": request})
+            serializer = self.get_serializer(
+                data={"author": author.id}, context={"request": request}
+            )
             serializer.is_valid(raise_exception=True)
             subscription = serializer.save()
-            response_serializer = SubscriptionSerializer(subscription.author, context={"request": request})
+            response_serializer = SubscriptionSerializer(
+                subscription.author, context={"request": request}
+            )
             return Response(response_serializer.data, status=status.HTTP_201_CREATED)
 
-        deleted, _ = Subscription.objects.filter(subscriber=request.user, author=author).delete()
+        deleted, _ = Subscription.objects.filter(
+            subscriber=request.user, author=author
+        ).delete()
         if deleted:
             return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -110,14 +116,20 @@ class UserViewSet(DjoserSet):
         permission_classes=[IsAuthenticated],
     )
     def subscriptions(self, request):
-        authors_qs = User.objects.filter(follower_links__subscriber=request.user).order_by("id")
+        authors_qs = User.objects.filter(
+            follower_links__subscriber=request.user
+        ).order_by("id")
 
         page = self.paginate_queryset(authors_qs)
         if page is not None:
-            serializer = SubscriptionSerializer(page, many=True, context={"request": request})
+            serializer = SubscriptionSerializer(
+                page, many=True, context={"request": request}
+            )
             return self.get_paginated_response(serializer.data)
 
-        serializer = SubscriptionSerializer(authors_qs, many=True, context={"request": request})
+        serializer = SubscriptionSerializer(
+            authors_qs, many=True, context={"request": request}
+        )
         return Response(serializer.data)
 
 

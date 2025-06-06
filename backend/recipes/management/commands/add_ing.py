@@ -21,17 +21,18 @@ class Command(BaseCommand):
                 for row in reader:
                     ingredients_to_create.append(
                         Ingredient(
-                            name=row["name"],
-                            measurement_unit=row["measurement_unit"]
+                            name=row["name"], measurement_unit=row["measurement_unit"]
                         )
                     )
 
             with transaction.atomic():
                 Ingredient.objects.bulk_create(ingredients_to_create)
 
-            self.stdout.write(self.style.SUCCESS(
-                f"Успешно добавлено {len(ingredients_to_create)} ингредиентов"
-            ))
+            self.stdout.write(
+                self.style.SUCCESS(
+                    f"Успешно добавлено {len(ingredients_to_create)} ингредиентов"
+                )
+            )
 
         except Exception as e:
             self.stderr.write(self.style.ERROR(f"ERROR: {e}"))
